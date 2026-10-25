@@ -68,7 +68,7 @@
       FilesetResolver,
       DrawingUtils
     } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22";
-
+      start.onclick = () => alert("AURA button is working!");
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
@@ -79,7 +79,7 @@
     let tracker;
     let running = false;
     let lastVideoTime = -1;
-start.onclick = () => alert("AURA button is working!");
+
     start.addEventListener("click", async () => {
       start.disabled = true;
       status.textContent = "Loading hand tracker...";
