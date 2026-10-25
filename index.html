@@ -79,7 +79,7 @@
     let tracker;
     let running = false;
     let lastVideoTime = -1;
-
+start.onclick = () => alert("AURA button is working!");
     start.addEventListener("click", async () => {
       start.disabled = true;
       status.textContent = "Loading hand tracker...";
