@@ -4,18 +4,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>AURA Test</title>
+  <title>AURA Hand Tracker</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #07111f;
+      color: #00f0ff;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    h1 { letter-spacing: 5px; }
+    button {
+      padding: 14px 22px;
+      margin: 10px;
+      font-size: 17px;
+      font-weight: bold;
+      background: #00f0ff;
+      color: #07111f;
+      border: 0;
+      border-radius: 8px;
+    }
+    #status {
+      color: #ffffff;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+    #stage {
+      position: relative;
+      width: 100%;
+      max-width: 640px;
+      margin: 15px auto;
+    }
+    video, canvas {
+      width: 100%;
+      border-radius: 12px;
+      transform: scaleX(-1);
+    }
+    canvas {
+      position: absolute;
+      left: 0;
+      top: 0;
+    }
+  </style>
 </head>
-<body style="background:#07111f;color:#00f0ff;text-align:center;font-family:Arial;padding:30px">
+<body>
   <h1>AURA</h1>
-  <p>JavaScript Button Test</p>
-  <button id="test" style="padding:15px;font-size:18px">TEST BUTTON</button>
-  <p id="status">Waiting...</p>
+  <p>GESTURE CONTROL LAB</p>
+  <button id="start">START CAMERA</button>
+  <p id="status">Ready. Tap START CAMERA.</p>
+
+  <div id="stage">
+    <video id="video" autoplay playsinline muted></video>
+    <canvas id="canvas"></canvas>
+  </div>
 
   <script>
-    document.getElementById("test").addEventListener("click", function() {
-      document.getElementById("status").textContent = "AURA JavaScript is working!";
-      alert("Bhai, button working hai!");
+    const startButton = document.getElementById("start");
+    const statusText = document.getElementById("status");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    let cameraStream;
+
+    startButton.addEventListener("click", async () => {
+      startButton.disabled = true;
+
+      try {
+        statusText.textContent = "Step 1/3: Loading hand-tracking library...";
+
+        const vision = await import(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/vision_bundle.mjs"
+        );
+
+        statusText.textContent = "Step 2/3: Loading hand model...";
+
+        const files = await vision.FilesetResolver.forVisionTasks(
+          "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.22/wasm"
+        );
+
+        const tracker = await vision.HandLandmarker.createFromOptions(
+          files,
+          {
+            baseOptions: {
+              modelAssetPath:
+                "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+              delegate: "CPU"
+            },
+            runningMode: "VIDEO",
+            numHands: 2
+          }
+        );
+
+        statusText.textContent = "Step 3/3: Requesting camera permission...";
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error("Camera API unavailable. Open the HTTPS GitHub Pages website in Chrome.");
+        }
+
+        cameraStream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: { facingMode: "user", width: 640, height: 480 }
+        });
+
+        video.srcObject = cameraStream;
+        await video.play();
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        statusText.textContent = "AURA ONLINE — Show your hand to the camera!";
+
+        function detectHands() {
+          if (video.readyState >= 2) {
+            if (canvas.width !== video.videoWidth ||
+                canvas.height !== video.videoHeight) {
+              canvas.width = video.videoWidth;
+              canvas.height = video.videoHeight;
+            }
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const result = tracker.detectForVideo(video, performance.now());
+
+            if (result.landmarks) {
+              for (const hand of result.landmarks) {
+                ctx.strokeStyle = "#00f0ff";
+                ctx.lineWidth = 3;
+                ctx.fillStyle = "#ffffff";
+
+                for (const connection of vision.HandLandmarker.HAND_CONNECTIONS) {
+                  const a = hand[connection.start];
+                  const b = hand[connection.end];
+                  ctx.beginPath();
+                  ctx.moveTo(a.x * canvas.width, a.y * canvas.height);
+                  ctx.lineTo(b.x * canvas.width, b.y * canvas.height);
+                  ctx.stroke();
+                }
+
+                for (const point of hand) {
+                  ctx.beginPath();
+                  ctx.arc(
+                    point.x * canvas.width,
+                    point.y * canvas.height,
+                    4, 0, Math.PI * 2
+                  );
+                  ctx.fill();
+                }
+              }
+            }
+          }
+
+          requestAnimationFrame(detectHands);
+        }
+
+        detectHands();
+
+      } catch (error) {
+        statusText.textContent =
+          "AURA ERROR: " + (error.name || "Error") + " — " +
+          (error.message || String(error));
+        startButton.disabled = false;
+      }
     });
   </script>
 </body>
