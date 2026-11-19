@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AURA Vision</title>
+
+<style>
+body {
+  background: #030712;
+  color: #00d9ff;
+  font-family: Arial;
+  text-align: center;
+  padding: 15px;
+}
+h1 {
+  letter-spacing: 5px;
+}
+video {
+  width: 100%;
+  max-width: 500px;
+  border: 2px solid #00d9ff;
+  border-radius: 15px;
+  transform: scaleX(-1);
+  background: #111;
+}
+button {
+  background: #00d9ff;
+  color: #001018;
+  border: none;
+  padding: 15px 30px;
+  border-radius: 10px;
+  font-size: 17px;
+  margin: 20px;
+}
+#status {
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>AURA</h1>
+<p>ADVANCED VISION SYSTEM</p>
+
+<video id="camera" autoplay playsinline muted></video>
+
+<br>
+
+<button id="start">START CAMERA</button>
+
+<p id="status">SYSTEM: STANDBY</p>
+
+<script>
+const video = document.getElementById("camera");
+const status = document.getElementById("status");
+const button = document.getElementById("start");
+
+button.addEventListener("click", async () => {
+  try {
+    status.textContent = "SYSTEM: CONNECTING...";
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: "user" },
+      audio: false
+    });
+
+    video.srcObject = stream;
+    await video.play();
+
+    status.textContent = "AURA VISION: ONLINE";
+    button.textContent = "CAMERA RUNNING";
+
+  } catch (error) {
+    status.textContent = "ERROR: " + error.message;
+  }
+});
+</script>
+
+</body>
+</html>
